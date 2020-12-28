@@ -1,0 +1,175 @@
+####Data Management and Cleaning######
+library(readxl)
+library(leaps)
+bambola <- read_excel("C:/Desktop/bambola.xlsx")
+dat=bambola[bambola$LIVE==1,] #Subsetting data for alive bambola
+dat<-dat[,c(-1,-4,-7,-8,-9)] #discard unnecessary data
+#######Analysis of color distribution of bambola ###########
+sum(dat$CLR=="W") #white color has 566
+sum(dat$CLR=="P") #Pink has 279
+sum(dat$CLR=="R") #Red has75
+chisq.test(c(566,279,75), p=c(57,36,7)/100) #chisq test for Goodness of Fit
+#p-value = 0.001312, color distribution is significantly different from original report
+######Analysis of germinating rate of different type of bambola#########
+datn<-bambola[,c(-1,-2,-5,-6,-7,-8,-9)] #subsetting data for bambola type
+sum(datn$VAR=='A' &datn$LIVE==0) #Type A has 28 dead
+sum(datn$VAR=='B' &datn$LIVE==0) # Type B has 25 dead
+sum(datn$VAR=='C' &datn$LIVE==0) # Type C has 31 dead
+sum(datn$VAR=='D' &datn$LIVE==0) # Type D has 20 dead
+table1=matrix(c(28,25,31,20,228,231,225,236),ncol=2)
+colnames(table1)=c("No","Yes")
+rownames(table1)=c("A","B","C","D")
+chisq.test(table1)
+prop.test(table1)
+#Chisquare test hypothesis: prob(A)=prob(B)=prob(C)=prob(D), p-value =0.4193, cannot reject, all of
+them have same nongerminating rate.
+prob=data.frame(var=c('A','B','C','D'), N=c(256,256,256,256), no=c(28,25,31,20)) #probability of
+germinating vs. nongerminating rate for type A,B,C,D
+modn<- glm(cbind(no, N-no)~factor(var),family = binomial, data = prob) #logistic regression model of
+probability of nongerminating rate with respect to bambola type
+summary(modn)
+########Result Summary############################################
+## ln(p_no/1-p_no)=-2.0971-0.1264*I(var=B)+0.1150*I(var=C)-0.3710*I(D) ##
+## p_no=e^(-2.0971-0.1264*I(var=B)+0.1150*I(var=C)-0.3710*I(D))/1+e^( ##
+## -2.0971-0.1264*I(var=B)+0.1150*I(var=C)-0.3710*I(D)) ##
+## prob no for A=e^(-2.0971)/1+e^(-2.0971)=0.109379 ##
+## prob no for B=e^(-2.0971-0.1264)/1+e^(-2.0971-0.1264)=0.09765994 ##
+## prob no for C=e^(-2.0971+0.1150)/1+e^(-2.0971+0.1150)=0.1210952 ##
+## prob no for D=e^(-2.0971-0.3710)/1+e^(-2.0971-0.3710)=0.07812497 ##
+## prob of nongerminating rate for ##
+## A is 1-0.109=89%, B is 1-0.098=90%, C is 1-0.121=87%, D is 1-0.078=92% ##
+#################################################################
+######Analysis of Germinating rate for different Location#########
+datn1<-bambola[,c(-1,-3,-5,-6,-7,-8,-9)] #subsetting data for FL and LA bambola
+sum(datn1$LOC=='FL' &datn$LIVE==1) #Florida has 441 germinated
+sum(datn1$LOC=='LA' &datn$LIVE==1) # Los Angeles has 479 germinated
+sum(datn1$LOC=='FL') #Florida planted 512
+sum(datn1$LOC=='LA') # Los Angeles planted 512
+table2=matrix(c(441,479,71,33),ncol=2)
+colnames(table2)=c("Yes","No")
+rownames(table2)=c("FL","LA")
+chisq.test(table2)
+prop.test(table2)
+#Chisquare test Hypothesis: prob(FL)=prob(LA), p-value = 0.0001293, , there significant difference
+between geminating rate in FL and LA
+prob1=data.frame(loc=c('FL','LA'),n=c(512,512),yes=c(441,479)) #probability of germinating vs.
+nongerminating rate in FL and LA
+mody<- glm(cbind(yes, n-yes)~factor(loc),family = binomial, data = prob1) #logistic regression model of
+probability of germinating rate with respect to location
+summary(mody)
+########Result Summary##########################
+## ln(p_yes/1-p_yes)=1.8264+0.8488*I(loc=LA) ##
+## p_yes=e^(1.8264+0.8488*I(loc=LA))/1+e^( ##
+## 1.8264+0.8488*I(loc=LA)) ##
+## prob yes for FL=e^(1.8264)/1+e^(1.8264)=0.86133 ##
+## prob yes for LA=e^(1.8264+0.8488)/1+e^(1.8264+ ##
+## 0.8488)=0.93553 ->higher germination rate ##
+## Germinating rate for different location is ##
+## FL is 86%, LA is 93% ##
+###############################################
+############Analysis of color distribution for different type in different Location########
+install.packages("vcd")
+install.packages("grid")
+library(vcd)
+FLA=dat[dat$LOC=="FL"&dat$VAR=="A",]
+FLB=dat[dat$LOC=="FL"&dat$VAR=="B",]
+FLC=dat[dat$LOC=="FL"&dat$VAR=="C",]
+FLD=dat[dat$LOC=="FL"&dat$VAR=="D",]
+LAA=dat[dat$LOC=="LA"&dat$VAR=="A",]
+LAB=dat[dat$LOC=="LA"&dat$VAR=="B",]
+LAC=dat[dat$LOC=="LA"&dat$VAR=="C",]
+LAD=dat[dat$LOC=="LA"&dat$VAR=="D",]
+tableloc=matrix(c(41,34,400,445),ncol=2)
+colnames(tableloc)=c("R","NonR")
+rownames(tableloc)=c("FL","LA")
+chisq.test(tableloc) #p-value = 0.2726 cannot reject, red bambola distribution for each location are same
+prop.test(tableloc) #FL=0.09297052 LA=0.07098121
+tablevar=matrix(c(14,13,27,21,214,218,198,215),ncol=2)
+colnames(tablevar)=c("R","NonR")
+rownames(tablevar)=c("A","B","C","D")
+chisq.test(tablevar) #p-value = 0.04981 reject, red bambola distribution for each type is significantly
+different
+prop.test(tablevar) #A=0.06140351 B=0.05627706 C=0.12000000 D=0.08898305, C is higher
+tablelocvar=matrix(c(5,7,16,13,9,6,11,8,102,103,92,103,112,115,106,112),ncol=2,nrow=8)
+colnames(tablelocvar)=c("R","NonR")
+rownames(tablelocvar)=c("FLA","FLB","FLC","FLD","LAA","LAB","LAC","LAD")
+chisq.test(tablelocvar) #p-value = 0.08884 cannot reject, red bambola distribution for each type in each
+location are the same
+prop.test(tablelocvar) #A=0.06140351 B=0.05627706 C=0.12000000 D=0.08898305, C type has a bit
+more red bambola
+#####Mosaic Plot (Color distribution across Variety and Location)#####
+colordist = c(62,85,59,56,70,89,77,68,40,18,33,47,42,26,29,44,5,7,16,13,9,6,11,8)
+dim(colordist) = c(4, 2, 3)
+dimnames(colordist) =
+list(Variety = c("A", "B","C","D"), Location = c("Florida", "Louisiana"), Color = c("White", "Pink","Red"))
+mosaicplot(colordist, col = c("white","Pink","Red"), main = "Color distribution across Variety and
+Location") #So, from graph (FL,C) produces more red canes, but from test FL produce significantly more
+than LA.
+####Modeling Height of Bambola#########
+hist(bambola$HT)
+hist(dat$HT) #height is not normal distributed, it has long tail, need transformation
+hist(log10(dat$HT)) #normalized distribution
+#model selection(backward)
+aggregate(log10(dat$HT),list(location=dat$LOC,variety=dat$VAR,color=dat$CLR),length)
+aggregate(log10(dat$HT),list(location=dat$LOC,variety=dat$VAR,color=dat$CLR),mean)
+# each type of bambola in each location does not have same sample size. However, the design is almost
+balanced, as can be seen via the MEANS option
+#Type III ANOVA significant level=0.05 (for unbalanced design)
+full = lm(log10(HT)~factor(LOC)*factor(VAR)*factor(CLR), data=dat)
+anova(lm(log10(HT)~factor(LOC)*factor(VAR)*factor(CLR), data=dat,type=3))
+anova(lm(log10(HT)~factor(LOC)+factor(VAR)+factor(CLR), data=dat,type=3))#color is not significant
+anova(lm(log10(HT)~factor(LOC)*factor(VAR), data=dat,type=3)) # interaction is not significant
+anova(lm(log10(HT)~factor(LOC)+factor(VAR), data=dat,type=3))
+model=lm(log10(HT)~factor(LOC)+factor(VAR),dat) #final model
+summary(model) #RMSE=0.419
+#Calculating using grand mean model
+mean(log10(dat$HT)) #grand mean
+aggregate(log10(dat$HT),list(location=dat$LOC),length)
+aggregate(log10(dat$HT),list(location=dat$LOC),mean)
+aggregate(log10(dat$HT),list(location=dat$LOC),sd)
+aggregate(log10(dat$HT),list(variety=dat$VAR),length)
+aggregate(log10(dat$HT),list(variety=dat$VAR),mean)
+aggregate(log10(dat$HT),list(variety=dat$VAR),sd)
+######### Hand calculation using grand mean model##########################
+## grand=2.451681 ##
+## loc=y_loc-grand ##
+## FL=2.511202-2.451681=0.059521 & LA=2.396883-2.451681=-0.054798 ##
+## Var=y_var-grand ##
+## A=2.470413-2.451681=0.018732 & B=2.508327-2.451681=0.056646 ##
+## C=2.399527-2.451681=-0.052154 & D=2.427863-2.451681=-0.023818 ##
+## inter=y_in-yloc-yvar-grand ##
+## FL:A=2.493189-2.511202-2.470413+2.451681=-0.036745 ##
+## FL:B=2.525780-2.511202-2.508327+2.451681=-0.042068 ##
+## FL:C=2.501912-2.511202-2.399527+2.451681=0.042864 ##
+## FL:D=2.522641-2.511202-2.427863+2.451681=0.035257 ##
+## LA:A=2.450272-2.396883-2.470413+2.451681=0.034657 ##
+## LA:B=2.492460-2.396883-2.508327+2.451681=-0.038931 ##
+## LA:C=2.305017-2.396883-2.399527+2.451681=-0.039712 ##
+## LA:D=2.336245-2.396883-2.427863+2.451681=-0.03682 ##
+## log10(HT)=grand+loc+var+RMSE, transform HT back to real height ##
+## HT(FL:A)=2.451681+0.059521+0.018732=2.529934, realHT=10^2.529934=338.792 ##
+## HT(FL:B)=2.451681+0.059521+0.056646=2.567848, realHT=10^2.567848=369.698 ##
+## HT(FL:C)=2.451681+0.059521-0.052154=2.459048, realHT=10^2.459048=287.7716 ##
+## HT(FL:D)=2.451681+0.059521-0.023818=2.487384, realHT=10^2.487384=307.1737 ##
+## HT(LA:A)=2.451681-0.054798+0.018732=2.415615, realHT=10^2.415615=260.3844 ##
+## HT(LA:B)=2.451681-0.054798+0.056646=2.453529, realHT=10^2.453529=284.1378 ##
+## HT(LA:C)=2.451681-0.054798-0.052154=2.344729, realHT=10^2.344729=221.1714 ##
+## HT(LA:D)=2.451681-0.054798-0.023818=2.373065, realHT=10^2.373065=236.0832 ##
+## Most favoriable Variety-Location combination is (B,FL), since the estimate Height ##
+## of cane is the greatest. ##
+##########################################################################
+#Computing the highest total value for different location and different type of bambola
+aggregate(bambola$TOTAL,list(location=bambola$LOC,variety=bambola$VAR),length) #calculate
+number of different type of bambola in different locations
+aggregate(bambola$TOTAL,list(location=bambola$LOC,variety=bambola$VAR),mean) #highest=(FL,D)
+#calculate mean for different type of bambola in different locations
+value=matrix(c(102.48984,108.15469,110.70078,128.45391,121.79531,106.98516,70.29063,76.65937),
+ncol=2)
+colnames(value)=c("FL","LA")
+rownames(value)=c("A","B","C","D")
+chisq.test(value) #p-value = 0.000624
+sd=aggregate(bambola$TOTAL,list(location=bambola$LOC,variety=bambola$VAR),sd) #calculate
+standard deviation for different type of bambola in different locations
+SE=sd$x/sqrt(128) #Standard error is from $11-15 are large, most of them are not significant different
+#mean for type C in LA and type D in LA are small and SE are small, they are significant worser than
+other.
